@@ -16,7 +16,7 @@ import {IERC20} from "../src/interface/token/IERC20.sol";
  * @notice This contract allows interaction with the AAVE protocol for various operations.
  */
 contract Initializer is Constants {
-    IPool internal immutable i_aavePool;
+    IPool public immutable i_aavePool;
     IPoolDataProvider internal immutable i_dataProvider;
     IAaveOracle internal immutable i_aaveOracle;
 
@@ -39,8 +39,6 @@ contract SupplyAssets is Script, Initializer {
      * @dev The function requires the caller to have approved the AAVE pool to spend the specified amount of tokens.
      */
     function run(address token, uint256 amount) public {
-        // Allow the AAVE pool to spend the specified amount of tokens
-        IERC20(token).approve(address(i_aavePool), amount);
 
         // Supply the tokens to the AAVE pool
         i_aavePool.supply({asset: token, amount: amount, onBehalfOf: msg.sender, referralCode: 0});
@@ -99,9 +97,6 @@ contract RepayAssests is Script, Initializer {
      * @return repaid The actual amount repaid. This may be less than the specified amount if the user has a smaller debt.
      */
     function run(address token, uint256 amount) public returns (uint256 repaid) {
-        // Allow the AAVE pool to spend the specified amount of tokens
-        IERC20(token).approve(address(i_aavePool), amount);
-
         // Repay the specified amount of tokens to the AAVE pool
         repaid = i_aavePool.repay({
             asset: token,
@@ -181,7 +176,7 @@ contract GetDebt is Script, Initializer {
      * @param token the address of the token
      * @return The amount of debt the user has for the specified token.
      */
-    function getDebtOfUser(address user, address token) public view returns (uint256) {
+    function run(address user, address token) public view returns (uint256) {
         IPool.ReserveData memory reserve = i_aavePool.getReserveData(token);
         return IERC20(reserve.variableDebtTokenAddress).balanceOf(user);
     }
@@ -195,7 +190,7 @@ contract GetHealthFactor is Script, Initializer {
      * @param user the address of the user
      * @return The health factor of the user.
      */
-    function getHealthFactorOfUser(address user) public view returns (uint256) {
+    function run(address user) public view returns (uint256) {
         (,,,,, uint256 healthFactor) = i_aavePool.getUserAccountData(user);
 
         return healthFactor;
