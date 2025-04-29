@@ -16,20 +16,12 @@ import {IERC20} from "../src/interface/token/IERC20.sol";
  * @notice This contract allows interaction with the AAVE protocol for various operations.
  */
 contract Initializer is Constants {
-    IPool public immutable i_aavePool;
-    IPoolDataProvider internal immutable i_dataProvider;
-    IAaveOracle internal immutable i_aaveOracle;
-
-    constructor() {
-        i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
-        i_dataProvider = IPoolDataProvider(AAVE_POOL_DATA_PROVIDER);
-        i_aaveOracle = IAaveOracle(AAVE_ORACLE);
-    }
+    IPool public immutable i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
+    IPoolDataProvider internal constant DATA_PROVIDER = IPoolDataProvider(AAVE_POOL_DATA_PROVIDER);
+    IAaveOracle internal constant PRICE_ORACLE = IAaveOracle(AAVE_ORACLE);
 }
 
 contract SupplyAssets is Script, Initializer {
-    constructor() Initializer() {}
-
     /**
      *
      * @param token the address of the erc20 token to supply
@@ -46,11 +38,9 @@ contract SupplyAssets is Script, Initializer {
 }
 
 contract WithdrawAssets is Script, Initializer {
-    constructor() Initializer() {}
-
     /**
      *
-     * @param token the address of the erc20 token to borrow
+     * @param token the address of the erc20 token to withdraw
      * @param amount the amount of tokens to withdraw
      * @notice This function withdraws the specified amount of tokens from the AAVE pool.
      * @dev The function uses the AAVE pool's withdraw function to transfer the tokens to the caller.
@@ -64,8 +54,6 @@ contract WithdrawAssets is Script, Initializer {
 }
 
 contract BorrowAssests is Script, Initializer {
-    constructor() Initializer() {}
-
     /**
      *
      * @param token the address of the erc20 token to borrow
@@ -85,11 +73,9 @@ contract BorrowAssests is Script, Initializer {
 }
 
 contract RepayAssests is Script, Initializer {
-    constructor() Initializer() {}
-
     /**
      *
-     * @param token token address user wants to repay
+     * @param token the address of the erc20 token to repay
      * @param amount the amount of tokens to repay
      * @notice This function repays the specified amount of tokens to the AAVE pool.
      * @dev The function uses the AAVE pool's repay function to transfer the tokens from the caller to the pool.
@@ -108,68 +94,21 @@ contract RepayAssests is Script, Initializer {
     }
 }
 
-abstract contract FlashLoan is Script, Initializer {
-    constructor() Initializer() {}
-
-    function run(address token, uint256 amount, bytes memory data) public {
-        flashLoan(token, amount, data);
-    }
-
+contract GetCollateral is Script, Initializer {
     /**
-     *
-     * @param token the address of the erc20 token to borrow
-     * @param amount the amount of tokens to borrow
-     * @param data arbitrary data to pass to the flash loan callback function
-     * @notice This function initiates a flash loan from the AAVE pool.
-     * @dev The function uses the AAVE pool's flashLoan function to borrow the specified amount of tokens.
+     * 
+     * @param user the address of the user
+     * @param token the address of the token
+     * @return The amount of collateral the user has for the specified token.
+     * @dev This function retrieves the balance of the specified token collateral for the user.
      */
-    function flashLoan(address token, uint256 amount, bytes memory data) public {
-        i_aavePool.flashLoanSimple({
-            receiverAddress: msg.sender,
-            asset: token,
-            amount: amount,
-            params: data,
-            referralCode: 0
-        });
+    function run(address user, address token) public view returns (uint256) {
+        IPool.ReserveData memory reserve = i_aavePool.getReserveData(token);
+        return IERC20(reserve.aTokenAddress).balanceOf(user);
     }
-
-    /**
-     *
-     * @param token token address
-     * @param amount amount of tokens to borrow
-     * @param fee the fee for the flash loan
-     * @param initiator the address that initiated the flash loan
-     * @param params arbitrary data to pass to the flash loan callback function
-     * @dev ensures the sender is the aave pool and the initiator of the flash loan is this contract
-     * @return true if the operation was successful
-     */
-    function executeOperation(address token, uint256 amount, uint256 fee, address initiator, bytes calldata params)
-        external
-        returns (bool)
-    {
-        require(msg.sender == address(i_aavePool), "not authorized");
-        require(initiator == address(this), "invalid initiator");
-
-        _flashLoanCallBack(token, amount, fee, params);
-
-        return true;
-    }
-
-    /**
-     *
-     * @param token the address of the erc20 token to borrow
-     * @param amount the amount of tokens to borrow
-     * @param fee the fee for the flash loan
-     * @param params arbitrary data to pass to the flash loan callback function
-     * @notice This function is called back after a flash loan is executed.
-     * @dev The function should be overridden in the derived contract to implement custom logic.
-     */
-    function _flashLoanCallBack(address token, uint256 amount, uint256 fee, bytes memory params) internal virtual;
 }
 
 contract GetDebt is Script, Initializer {
-    constructor() Initializer() {}
-
     /**
      *
      * @param user the address of the user
@@ -183,8 +122,6 @@ contract GetDebt is Script, Initializer {
 }
 
 contract GetHealthFactor is Script, Initializer {
-    constructor() Initializer() {}
-
     /**
      *
      * @param user the address of the user

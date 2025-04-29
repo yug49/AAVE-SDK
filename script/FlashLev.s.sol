@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import {IERC20} from "../src/interface/token/IERC20.sol";
 import {Pay} from "../src/helper/Pay.sol";
 import {Token} from "../src/helper/Token.sol";
-import "./Interactions.s.sol";
 import {SwapHelper} from "../src/helper/SwapHelper.sol";
+import {FlashLoan} from "../src/helper/FlashLoan.sol";
 
 /**
  * @title Contract to create a Leveraged Position using AAVE-FlashLoan
