@@ -6,7 +6,6 @@ import {Script} from "../../lib/forge-std/src/Script.sol";
 import {Initializer} from "../../script/Interactions.s.sol";
 
 abstract contract FlashLoan is Script, Initializer {
-
     function run(address token, uint256 amount, bytes memory data) public {
         flashLoan(token, amount, data);
     }

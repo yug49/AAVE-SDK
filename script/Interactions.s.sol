@@ -31,7 +31,6 @@ contract SupplyAssets is Script, Initializer {
      * @dev The function requires the caller to have approved the AAVE pool to spend the specified amount of tokens.
      */
     function run(address token, uint256 amount) public {
-
         // Supply the tokens to the AAVE pool
         i_aavePool.supply({asset: token, amount: amount, onBehalfOf: msg.sender, referralCode: 0});
     }
@@ -96,7 +95,7 @@ contract RepayAssests is Script, Initializer {
 
 contract GetCollateral is Script, Initializer {
     /**
-     * 
+     *
      * @param user the address of the user
      * @param token the address of the token
      * @return The amount of collateral the user has for the specified token.

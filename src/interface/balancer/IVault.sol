@@ -46,12 +46,9 @@ interface IVault {
         bool fromInternalBalance;
     }
 
-    function joinPool(
-        bytes32 poolId,
-        address sender,
-        address recipient,
-        JoinPoolRequest memory request
-    ) external payable;
+    function joinPool(bytes32 poolId, address sender, address recipient, JoinPoolRequest memory request)
+        external
+        payable;
 
     // ExactKind for MetaStablePool
     enum ExitKind {
@@ -67,19 +64,10 @@ interface IVault {
         bool toInternalBalance;
     }
 
-    function exitPool(
-        bytes32 poolId,
-        address sender,
-        address recipient,
-        ExitPoolRequest memory request
-    ) external;
+    function exitPool(bytes32 poolId, address sender, address recipient, ExitPoolRequest memory request) external;
 
     function getPoolTokens(bytes32 poolId)
         external
         view
-        returns (
-            address[] memory tokens,
-            uint256[] memory balances,
-            uint256 lastChangeBlock
-        );
+        returns (address[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock);
 }

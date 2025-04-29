@@ -17,7 +17,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
 
     /**
      * @notice parameters for swap process
-     * @param amountOutMin min amount of output token to receive 
+     * @param amountOutMin min amount of output token to receive
      * @param data additional data for the swap process
      */
     struct SwapParams {
@@ -52,7 +52,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
      * @param swap Swap parameters for collateral to coin swap
      * @param minHealthFactor The minimum health factor required for the position
      */
-    struct OpenParams{
+    struct OpenParams {
         address coin;
         address collateral;
         uint256 colAmount;
@@ -68,7 +68,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
      * @param colAmount The amount of collateral to keep after closing the position
      * @param swap Swap parameters for coin to collateral swap
      */
-    struct CloseParams{
+    struct CloseParams {
         address coin;
         address collateral;
         uint256 colAmount;
@@ -130,7 +130,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
             )
         });
 
-        if(getHealthFactor.run(msg.sender) < params.minHealthFactor) {
+        if (getHealthFactor.run(msg.sender) < params.minHealthFactor) {
             revert FlashLev__HealthFactorTooLow();
         }
     }
@@ -141,7 +141,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
      */
     function close(CloseParams calldata params) external {
         uint256 coinAmount = getDebt.run(address(this), params.coin);
-        
+
         FlashLoan.run({
             token: params.coin,
             amount: coinAmount,
@@ -166,19 +166,14 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
      * @param params additonal parameters for the flash loan operations --> decode it into flashLoanData
      * @dev this function is executed after the flash loan is issued
      */
-    function _flashLoanCallBack(
-        address token,
-        uint256 amount,
-        uint256 fee,
-        bytes memory params
-    ) internal override {
-        FlashLoanData memory data = abi.decode(params,(FlashLoanData));
+    function _flashLoanCallBack(address token, uint256 amount, uint256 fee, bytes memory params) internal override {
+        FlashLoanData memory data = abi.decode(params, (FlashLoanData));
         uint256 repayAmount = amount + fee;
         IERC20 coin = IERC20(data.coin);
         IERC20 collateral = IERC20(data.collateral);
         address aavePool = IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool();
-        
-        if(data.open) {
+
+        if (data.open) {
             uint256 colAmountOut = swap({
                 tokenIn: data.coin,
                 tokenOut: data.collateral,
@@ -188,26 +183,13 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
             });
             uint256 colAmount = data.colAmount + colAmountOut;
             collateral.approve(address(aavePool), colAmount);
-            supplyAssets.run({
-                token: data.collateral,
-                amount: colAmount
-            });
-            borrowAssets.run({
-                token: data.coin,
-                amount: repayAmount
-            });
-        }
-        else {
+            supplyAssets.run({token: data.collateral, amount: colAmount});
+            borrowAssets.run({token: data.coin, amount: repayAmount});
+        } else {
             coin.approve(address(aavePool), amount);
-            repayAssets.run({
-                token: data.coin,
-                amount: amount
-            });
-            
-            uint256 colWithdrawn = withdrawAssets.run({
-                token: data.collateral, 
-                amount: type(uint256).max
-            });
+            repayAssets.run({token: data.coin, amount: amount});
+
+            uint256 colWithdrawn = withdrawAssets.run({token: data.collateral, amount: type(uint256).max});
 
             collateral.transfer(data.caller, data.colAmount);
             uint256 colAmountIn = colWithdrawn - data.colAmount;
@@ -220,7 +202,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
                 data: data.swap.data
             });
 
-            if(coinAmountOut < repayAmount) {
+            if (coinAmountOut < repayAmount) {
                 coin.transferFrom(data.caller, address(this), repayAmount - coinAmountOut);
             } else {
                 coin.transfer(data.caller, coinAmountOut - repayAmount);
