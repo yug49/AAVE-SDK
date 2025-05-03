@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {IPoolAddressesProvider} from "./interface/aave/IPoolAddressesProvider.sol";
 
+// Mainnet Etherium
 contract Constants {
     address constant AAVE_POOL_ADDRESSES_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant AAVE_POOL_DATA_PROVIDER = 0x41393e5e337606dc3821075Af65AeE84D7688CBD;
@@ -14,6 +15,7 @@ contract Constants {
     address constant AAVE_VAR_DEBT_DAI = 0xcF8d0c70c850859266f5C338b38F9D663181C314;
 
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
 
     // Uniswap V3
     address constant UNISWAP_V3_SWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
@@ -27,3 +29,28 @@ contract Constants {
     address constant VE_BAL_GAUGE = 0x79eF6103A513951a3b25743DB509E267685726B7;
     address constant ROCKET_BALANCER_RETH_RATE_PROVIDER = 0x1a8F81c256aee9C640e14bB0453ce247ea0DFE6F;
 }
+
+// //Sepoila Eth Testnet
+// contract Constants {
+//     address constant AAVE_POOL_ADDRESSES_PROVIDER = 0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A;
+//     address constant AAVE_POOL_DATA_PROVIDER = 0x3e9708d80f7B3e43118013075F7e95CE3AB31F31;
+//     address constant AAVE_ORACLE = 0x2da88497588bf89281816106C7259e31AF45a663;
+//     address constant AAVE_A_LINK = 0x3FfAf50D4F4E96eB78f2407c090b72e86eCaed24;
+//     address constant AAVE_A_USDC = 0x16dA4541aD1807f4443d92D26044C1147406EB80;
+
+//     address constant LINK = 0x779877A7B0D9E8603169DdbD7836e478b4624789;
+//     address constant USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+//     address constant WETH = 0x5b071b590a59395fE4025A0Ccc1FcC931AAc1830;
+
+//     // Uniswap V3
+//     address constant UNISWAP_V3_SWAP_ROUTER_02 = 0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E;
+//     uint24 constant UNISWAP_V3_POOL_FEE_DAI_WETH = 3000;
+//     uint24 constant UNISWAP_V3_POOL_FEE_RETH_WETH = 100;
+
+//     address constant BAL = 0xba100000625a3754423978a60c9317c58a424e3D;
+//     address constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+//     bytes32 constant BALANCER_POOL_ID_RETH_WETH = 0x1e19cf2d73a72ef1332c882f20534b6519be0276000200000000000000000112;
+//     address constant BALANCER_POOL_RETH_WETH = 0x1E19CF2D73a72Ef1332C882F20534B6519Be0276;
+//     address constant VE_BAL_GAUGE = 0x79eF6103A513951a3b25743DB509E267685726B7;
+//     address constant ROCKET_BALANCER_RETH_RATE_PROVIDER = 0x1a8F81c256aee9C640e14bB0453ce247ea0DFE6F;
+// }

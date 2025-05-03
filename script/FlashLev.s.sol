@@ -2,9 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "../src/interface/token/IERC20.sol";
-import {Pay} from "../src/helper/Pay.sol";
-import {Token} from "../src/helper/Token.sol";
+// import {Pay} from "../src/helper/Pay.sol";
+// import {Token} from "../src/helper/Token.sol";
 import {SwapHelper} from "../src/helper/SwapHelper.sol";
+import "./Interactions.s.sol";
 import {FlashLoan} from "../src/helper/FlashLoan.sol";
 
 /**
@@ -12,7 +13,7 @@ import {FlashLoan} from "../src/helper/FlashLoan.sol";
  * @author Yug Agarwal
  * @notice This contract allows users to create leveraged positions using AAVE's flash loan functionality.
  */
-contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
+contract FlashLev is SwapHelper, FlashLoan{
     error FlashLev__HealthFactorTooLow();
 
     /**
@@ -106,6 +107,12 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
 
         max = baseColAmount * (10 ** (18 - decimals)) * price * ltv / (1e4 - ltv) / 1e8;
     }
+    /*
+     if decimals = 1e8
+     then c() * 1e10 * price(1e8) * ltv(1e4) / 1e4 * 1e8 => c = 1e8
+     
+     if decimals = 1e18 => c = 1e18
+    */
 
     /**
      * @notice Opens a leveraged position
@@ -130,7 +137,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
             )
         });
 
-        if (getHealthFactor.run(msg.sender) < params.minHealthFactor) {
+        if (getHealthFactor.getHealthFactor(msg.sender) < params.minHealthFactor) {
             revert FlashLev__HealthFactorTooLow();
         }
     }
@@ -140,7 +147,7 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
      * @param params parameters for closing the position
      */
     function close(CloseParams calldata params) external {
-        uint256 coinAmount = getDebt.run(address(this), params.coin);
+        uint256 coinAmount = getDebt.getDebt(address(this), params.coin);
 
         FlashLoan.run({
             token: params.coin,
@@ -160,13 +167,12 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
 
     /**
      * @notice Callback function to handle flash loan operations
-     * @param token address of the token used in the flash Loan
      * @param amount amount of tokens borrowed
      * @param fee the fee for the flash loan
      * @param params additonal parameters for the flash loan operations --> decode it into flashLoanData
      * @dev this function is executed after the flash loan is issued
      */
-    function _flashLoanCallBack(address token, uint256 amount, uint256 fee, bytes memory params) internal override {
+    function _flashLoanCallBack(address /* token */, uint256 amount, uint256 fee, bytes memory params) internal override {
         FlashLoanData memory data = abi.decode(params, (FlashLoanData));
         uint256 repayAmount = amount + fee;
         IERC20 coin = IERC20(data.coin);
@@ -183,13 +189,13 @@ contract FlashLev is Pay, Token, SwapHelper, FlashLoan {
             });
             uint256 colAmount = data.colAmount + colAmountOut;
             collateral.approve(address(aavePool), colAmount);
-            supplyAssets.run({token: data.collateral, amount: colAmount});
-            borrowAssets.run({token: data.coin, amount: repayAmount});
+            supplyAssets.supply({token: data.collateral, amount: colAmount});
+            borrowAssets.borrow({token: data.coin, amount: repayAmount});
         } else {
             coin.approve(address(aavePool), amount);
-            repayAssets.run({token: data.coin, amount: amount});
+            repayAssets.repay({token: data.coin, amount: amount});
 
-            uint256 colWithdrawn = withdrawAssets.run({token: data.collateral, amount: type(uint256).max});
+            uint256 colWithdrawn = withdrawAssets.withdraw({token: data.collateral, amount: type(uint256).max});
 
             collateral.transfer(data.caller, data.colAmount);
             uint256 colAmountIn = colWithdrawn - data.colAmount;

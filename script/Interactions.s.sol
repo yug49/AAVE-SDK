@@ -18,8 +18,8 @@ import {Inputs} from "./Inputs.s.sol";
  */
 contract Initializer is Constants {
     IPool public immutable i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
-    IPoolDataProvider internal constant DATA_PROVIDER = IPoolDataProvider(AAVE_POOL_DATA_PROVIDER);
-    IAaveOracle internal constant PRICE_ORACLE = IAaveOracle(AAVE_ORACLE);
+    // IPoolDataProvider internal constant DATA_PROVIDER = IPoolDataProvider(AAVE_POOL_DATA_PROVIDER);
+    // IAaveOracle internal constant PRICE_ORACLE = IAaveOracle(AAVE_ORACLE);
 }
 
 contract SupplyAssets is Script, Initializer, Inputs {
