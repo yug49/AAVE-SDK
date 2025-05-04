@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC20} from "../src/interface/token/IERC20.sol";
+import {IERC20} from "./interface/token/IERC20.sol";
 // import {Pay} from "../src/helper/Pay.sol";
 // import {Token} from "../src/helper/Token.sol";
 import {SwapHelper} from "../src/helper/SwapHelper.sol";
-import "./Interactions.s.sol";
-import {FlashLoan} from "../src/helper/FlashLoan.sol";
+import "../script/Interactions.s.sol";
+import {IPool} from "../src/interface/aave/IPool.sol";
 
 /**
  * @title Contract to create a Leveraged Position using AAVE-FlashLoan
  * @author Yug Agarwal
  * @notice This contract allows users to create leveraged positions using AAVE's flash loan functionality.
  */
-contract FlashLev is SwapHelper, FlashLoan{
+contract FlashLev is SwapHelper{
     error FlashLev__HealthFactorTooLow();
 
     /**
@@ -84,6 +84,8 @@ contract FlashLev is SwapHelper, FlashLoan{
     RepayAssests repayAssets = new RepayAssests();
     WithdrawAssets withdrawAssets = new WithdrawAssets();
 
+    
+
     /**
      * @notice Get maximum flash loan amount for a given collateral and base collateral amount
      * @param collateral collateral token address
@@ -119,10 +121,9 @@ contract FlashLev is SwapHelper, FlashLoan{
      * @param params parameters for opening the position
      */
     function open(OpenParams calldata params) external {
-        IERC20(params.collateral).approve(address(this), params.colAmount);
         IERC20(params.collateral).transferFrom(msg.sender, address(this), params.colAmount);
 
-        FlashLoan.run({
+        flashLoan({
             token: params.coin,
             amount: params.coinAmount,
             data: abi.encode(
@@ -149,7 +150,7 @@ contract FlashLev is SwapHelper, FlashLoan{
     function close(CloseParams calldata params) external {
         uint256 coinAmount = getDebt.getDebt(address(this), params.coin);
 
-        FlashLoan.run({
+        flashLoan({
             token: params.coin,
             amount: coinAmount,
             data: abi.encode(
@@ -166,13 +167,55 @@ contract FlashLev is SwapHelper, FlashLoan{
     }
 
     /**
+     *
+     * @param token the address of the erc20 token to borrow
+     * @param amount the amount of tokens to borrow
+     * @param data arbitrary data to pass to the flash loan callback function
+     * @notice This function initiates a flash loan from the AAVE pool.
+     * @dev The function uses the AAVE pool's flashLoan function to borrow the specified amount of tokens.
+     */
+    function flashLoan(address token, uint256 amount, bytes memory data) public {
+        IPool i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
+        i_aavePool.flashLoanSimple({
+            receiverAddress: address(this),
+            asset: token,
+            amount: amount,
+            params: data,
+            referralCode: 0
+        });
+    }
+
+    /**
+     *
+     * @param token token address
+     * @param amount amount of tokens to borrow
+     * @param fee the fee for the flash loan
+     * @param initiator the address that initiated the flash loan
+     * @param params arbitrary data to pass to the flash loan callback function
+     * @dev ensures the sender is the aave pool and the initiator of the flash loan is this contract
+     * @return true if the operation was successful
+     */
+    function executeOperation(address token, uint256 amount, uint256 fee, address initiator, bytes calldata params)
+        external
+        returns (bool)
+    {
+        IPool i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
+        require(msg.sender == address(i_aavePool), "not authorized");
+        require(initiator == address(this), "invalid initiator");
+        
+        _flashLoanCallBack(token, amount, fee, params);
+
+        return true;
+    }
+
+    /**
      * @notice Callback function to handle flash loan operations
      * @param amount amount of tokens borrowed
      * @param fee the fee for the flash loan
      * @param params additonal parameters for the flash loan operations --> decode it into flashLoanData
      * @dev this function is executed after the flash loan is issued
      */
-    function _flashLoanCallBack(address /* token */, uint256 amount, uint256 fee, bytes memory params) internal override {
+    function _flashLoanCallBack(address /* token */, uint256 amount, uint256 fee, bytes memory params) internal {
         FlashLoanData memory data = abi.decode(params, (FlashLoanData));
         uint256 repayAmount = amount + fee;
         IERC20 coin = IERC20(data.coin);
@@ -188,11 +231,13 @@ contract FlashLev is SwapHelper, FlashLoan{
                 data: data.swap.data
             });
             uint256 colAmount = data.colAmount + colAmountOut;
-            collateral.approve(address(aavePool), colAmount);
-            supplyAssets.supply({token: data.collateral, amount: colAmount});
-            borrowAssets.borrow({token: data.coin, amount: repayAmount});
+            collateral.approve(aavePool, colAmount);
+            IPool(aavePool).supply({asset:data.collateral, amount: colAmount, onBehalfOf: msg.sender, referralCode: 0});
+            IPool(aavePool).borrow({asset:data.coin, amount: repayAmount, interestRateMode: 2, referralCode: 0, onBehalfOf: msg.sender});
+            // supplyAssets.supply({token: data.collateral, amount: colAmount});
+            // borrowAssets.borrow({token: data.coin, amount: repayAmount});
         } else {
-            coin.approve(address(aavePool), amount);
+            coin.approve(aavePool, amount);
             repayAssets.repay({token: data.coin, amount: amount});
 
             uint256 colWithdrawn = withdrawAssets.withdraw({token: data.collateral, amount: type(uint256).max});
@@ -215,6 +260,6 @@ contract FlashLev is SwapHelper, FlashLoan{
             }
         }
 
-        coin.approve(address(aavePool), repayAmount);
+        coin.approve(aavePool, repayAmount);
     }
 }

@@ -118,6 +118,10 @@ abstract contract SwapHelper is Constants {
                 receiver: address(this)
             });
 
+            if(tokenOut == WETH) {
+                return wethAmountOut;
+            }   
+            
             weth.approve(address(vault), wethAmountOut);
 
             return swapBalancerV2({
@@ -140,7 +144,7 @@ abstract contract SwapHelper is Constants {
                 amountOutMin: 1,
                 receiver: address(this)
             });
-
+            
             weth.approve(address(router), wethAmountOut);
 
             return swapUniV3({

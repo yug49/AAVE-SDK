@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {Script} from "../lib/forge-std/src/Script.sol";
+import {Script, console} from "../lib/forge-std/src/Script.sol";
 import {IPool} from "../src/interface/aave/IPool.sol";
 import {IAaveOracle} from "../src/interface/aave/IAaveOracle.sol";
 import {IPoolDataProvider} from "../src/interface/aave/IPoolDataProvider.sol";
@@ -33,7 +33,10 @@ contract SupplyAssets is Script, Initializer, Inputs {
      */
     function supply(address token, uint256 amount) public {
         // Supply the tokens to the AAVE pool
+        console.log("Supplying %s tokens to AAVE pool", amount);
+        vm.startBroadcast();
         i_aavePool.supply({asset: token, amount: amount, onBehalfOf: msg.sender, referralCode: 0});
+        vm.stopBroadcast();
     }
     
     function run() public {
