@@ -10,40 +10,40 @@ import {IERC20} from "../src/interface/token/IERC20.sol";
 import {IPoolAddressesProvider} from "../src/interface/aave/IPoolAddressesProvider.sol";
 import {IPool} from "../src/interface/aave/IPool.sol";
 import {Proxy} from "../src/Proxy.sol";
-
+import {GetDebt} from "../script/Interactions.s.sol";
 
 contract AaveTest is Test, Constants {
     FlashLev flashLev;
     Proxy proxy;
-    IERC20 constant dai = IERC20(DAI);
-    IERC20 constant reth = IERC20(RETH);
+    GetDebt getDebtInstance;
+    IERC20 constant iUSDC = IERC20(USDC);
+    IERC20 constant iWETH = IERC20(WETH);
     // Using vm.addr with a private key to generate a deterministic address
-    uint256 privateKey = 1;
+    uint256 privateKey = vm.envUint("PRIVATE_KEY");
     address USER = vm.addr(privateKey);
     IPoolAddressesProvider poolAddressProvider = IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER);
-
 
     function setUp() public {
         console.log("Setting up test...");
         flashLev = new FlashLev();
         proxy = new Proxy(USER);
+        getDebtInstance = new GetDebt();
         console.log("0");
         address pool = poolAddressProvider.getPool();
         console.log("1");
 
-
-        deal(DAI, USER, 1000 * 1e19); // 1000 DAI
-        deal(RETH, USER, 1 * 1e18); // 1 WETH
+        deal(USDC, USER, 1000 * 1e6); // 1000 USDC
+        deal(WETH, USER, 1 * 1e18); // 1 WETH
 
         vm.startPrank(USER);
-        dai.approve(address(proxy), type(uint256).max);
-        reth.approve(address(proxy), type(uint256).max);
+        iUSDC.approve(address(proxy), type(uint256).max);
+        iWETH.approve(address(proxy), type(uint256).max);
         vm.stopPrank();
 
         vm.label(address(flashLev), "FlashLev");
         vm.label(pool, "Pool");
         vm.label(USER, "User");
-        vm.label(DAI, "DAI");
+        vm.label(USDC, "USDC");
         vm.label(WETH, "WETH");
     }
 
@@ -71,20 +71,14 @@ contract AaveTest is Test, Constants {
         console.log("Liquidation threshold: %e", currentLiquidationThreshold);
         console.log("Health factor: %e", healthFactor);
 
-        return Info({
-            hf: healthFactor,
-            col: totalCollateralBase,
-            debt: totalDebtBase,
-            available: availableBorrowsBase
-        });
+        return Info({hf: healthFactor, col: totalCollateralBase, debt: totalDebtBase, available: availableBorrowsBase});
     }
 
     function test_getMaxFlashLoanAmountUsd() public view {
         uint256 colAmount = IERC20(WETH).balanceOf(address(this));
 
-        (uint256 max, uint256 price, uint256 ltv, uint256 maxLev) =
-            flashLev.getMaxFlashLoanAmountUsd(WETH, colAmount);
-        
+        (uint256 max, uint256 price, uint256 ltv, uint256 maxLev) = flashLev.getMaxFlashLoanAmountUsd(WETH, colAmount);
+
         console.log("Max flash loan USD: %e", max);
         console.log("Collateral price: %e", price);
         console.log("LTV: %e", ltv);
@@ -101,8 +95,7 @@ contract AaveTest is Test, Constants {
     function test_flashLev() public {
         uint256 colAmount = 1e18;
 
-        (uint256 max, uint256 price, uint256 ltv, uint256 maxLev) =
-            flashLev.getMaxFlashLoanAmountUsd(WETH, colAmount);
+        (uint256 max, uint256 price, uint256 ltv, uint256 maxLev) = flashLev.getMaxFlashLoanAmountUsd(WETH, colAmount);
         console.log("Max flash loan USD: %e", max);
         console.log("Collateral price: %e", price);
         console.log("LTV: %e", ltv);
@@ -111,39 +104,69 @@ contract AaveTest is Test, Constants {
         console.log("---------open------------");
 
         // assumes 1 coin = 1 usd
-        uint256 coinAmount = max * 98/100; // 50% of max flash loan
+        uint256 coinAmount = (max * 98 / 100)/(10 ** (18 - 6));
 
         vm.prank(USER);
-        proxy.execute(
-            address(flashLev),
-            abi.encodeCall(
-                flashLev.open,
-                (
-                    FlashLev.OpenParams({
-                        coin: DAI,
-                        collateral: RETH,
-                        colAmount: colAmount,
-                        coinAmount: coinAmount,
-                        swap: FlashLev.SwapParams({
-                            amountOutMin: coinAmount * 1e8 / price * 98 / 100,
-                            data: abi.encode(
-                                true,
-                                UNISWAP_V3_POOL_FEE_DAI_WETH,
-                                BALANCER_POOL_ID_RETH_WETH
-                            )
-                        }),
-                        minHealthFactor: 1.01 * 1e18
-                    })
-                )
-            )
+        IERC20(WETH).approve(address(flashLev), type(uint256).max);
+        vm.prank(USER);
+        flashLev.open(
+            FlashLev.OpenParams({
+                coin: USDC,
+                collateral: WETH,
+                colAmount: colAmount,
+                coinAmount: coinAmount,
+                swap: FlashLev.SwapParams({
+                    amountOutMin: 1,
+                    data: abi.encode(true, UNISWAP_V3_POOL_FEE_USDC_WETH)
+                }),
+                minHealthFactor: 1.01 * 1e18
+            })
         );
 
         Info memory info;
-        info = getInfo(address(proxy));
+        info = getInfo(USER);
 
         assertGt(info.col, 0);
         assertGt(info.debt, 0);
         assertGt(info.hf, 1e18);
         assertLt(info.hf, 1.1 * 1e18);
+
+        console.log("--------- close ------------");
+        uint256 coinBalBefore = iUSDC.balanceOf(address(this));
+        uint256 coinDebt = getDebtInstance.getDebt(address(proxy), USDC);
+
+        vm.prank(USER);
+        IERC20(USDC).approve(address(flashLev), type(uint256).max);
+        vm.prank(USER);
+        flashLev.close(
+            FlashLev.CloseParams({
+                coin: USDC,
+                collateral: WETH,
+                colAmount: colAmount,
+                swap: FlashLev.SwapParams({
+                    amountOutMin: coinDebt * 98 / 100,
+                    data: abi.encode(false, UNISWAP_V3_POOL_FEE_USDC_WETH)
+                })
+            })
+        );
+
+        uint256 coinBalAfter = iUSDC.balanceOf(address(this));
+
+        info = getInfo(USER);
+
+        assertEq(info.col, 0);
+        assertEq(info.debt, 0);
+        assertGt(info.hf, 1e18);
+
+        if (coinBalAfter >= coinBalBefore) {
+            console.log("Profit: %e", coinBalAfter - coinBalBefore);
+        } else {
+            console.log("Loss: %e", coinBalBefore - coinBalAfter);
+        }
+
+        uint256 colBal = iWETH.balanceOf(address(this));
+        console.log("Collateral: %e", colBal);
+
+        assertEq(colBal, colAmount);
     }
 }

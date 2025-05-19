@@ -10,16 +10,19 @@ import {Constants} from "../src/Constants.sol";
 import {IPoolAddressesProvider} from "../src/interface/aave/IPoolAddressesProvider.sol";
 import {IERC20} from "../src/interface/token/IERC20.sol";
 import {Inputs} from "./Inputs.s.sol";
+import {Vm} from "../lib/forge-std/src/Vm.sol";
 
 /**
  * @title AAVE Interactions Contract
  * @author Yug Agarwal
  * @notice This contract allows interaction with the AAVE protocol for various operations.
  */
-contract Initializer is Constants {
+contract Initializer is Constants, Script {
     IPool public immutable i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
     // IPoolDataProvider internal constant DATA_PROVIDER = IPoolDataProvider(AAVE_POOL_DATA_PROVIDER);
     // IAaveOracle internal constant PRICE_ORACLE = IAaveOracle(AAVE_ORACLE);
+    uint256 internal pvtKey = vm.envUint("PRIVATE_KEY");
+
 }
 
 contract SupplyAssets is Script, Initializer, Inputs {
@@ -34,8 +37,9 @@ contract SupplyAssets is Script, Initializer, Inputs {
     function supply(address token, uint256 amount) public {
         // Supply the tokens to the AAVE pool
         console.log("Supplying %s tokens to AAVE pool", amount);
-        vm.startBroadcast();
-        i_aavePool.supply({asset: token, amount: amount, onBehalfOf: msg.sender, referralCode: 0});
+        vm.startBroadcast(pvtKey);
+        IERC20(token).approve(address(i_aavePool), amount);
+        i_aavePool.supply({asset: token, amount: amount, onBehalfOf: vm.addr(pvtKey), referralCode: 0});
         vm.stopBroadcast();
     }
     
@@ -55,7 +59,10 @@ contract WithdrawAssets is Script, Initializer, Inputs {
      */
     function withdraw(address token, uint256 amount) public returns (uint256 withdrawn) {
         // Withdraw the specified amount of tokens from the AAVE pool
-        withdrawn = i_aavePool.withdraw({asset: token, amount: amount, to: msg.sender});
+        console.log("Withdrawing %s tokens from AAVE pool", amount);
+        vm.startBroadcast(pvtKey);
+        withdrawn = i_aavePool.withdraw({asset: token, amount: amount, to: vm.addr(pvtKey)});
+        vm.stopBroadcast();
         return withdrawn;
     }
 
@@ -73,13 +80,16 @@ contract BorrowAssests is Script, Initializer, Inputs {
      * @dev The function uses the AAVE pool's borrow function to transfer the tokens to the caller.
      */
     function borrow(address token, uint256 amount) public {
+        console.log("Borrowing %s tokens from AAVE pool", amount);
+        vm.startBroadcast(pvtKey);
         i_aavePool.borrow({
             asset: token,
             amount: amount,
             interestRateMode: 2, // Variable rate
             referralCode: 0,
-            onBehalfOf: msg.sender
+            onBehalfOf: vm.addr(pvtKey)
         });
+        vm.stopBroadcast();
     }
 
     function run() public {
@@ -99,12 +109,16 @@ contract RepayAssests is Script, Initializer, Inputs {
      */
     function repay(address token, uint256 amount) public returns (uint256 repaid) {
         // Repay the specified amount of tokens to the AAVE pool
+        console.log("Repaying %s tokens to AAVE pool", amount);
+        vm.startBroadcast(pvtKey);
+        IERC20(token).approve(address(i_aavePool), amount);
         repaid = i_aavePool.repay({
             asset: token,
             amount: amount,
             interestRateMode: 2, // Variable rate
-            onBehalfOf: msg.sender
+            onBehalfOf: vm.addr(pvtKey)
         });
+        vm.stopBroadcast();
         return repaid;
     }
 

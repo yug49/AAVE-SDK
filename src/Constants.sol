@@ -17,11 +17,13 @@ contract Constants {
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address constant RETH = 0xae78736Cd615f374D3085123A210448E74Fc6393;
+    address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     // Uniswap V3
     address constant UNISWAP_V3_SWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-    uint24 constant UNISWAP_V3_POOL_FEE_DAI_WETH = 3000;
-    uint24 constant UNISWAP_V3_POOL_FEE_RETH_WETH = 100;
+    uint24 constant UNISWAP_V3_POOL_FEE_DAI_WETH = 3000; // 0.3%
+    uint24 constant UNISWAP_V3_POOL_FEE_RETH_WETH = 100; // 0.01%
+    uint24 constant UNISWAP_V3_POOL_FEE_USDC_WETH = 500; // 0.05%
 
     address constant BAL = 0xba100000625a3754423978a60c9317c58a424e3D;
     address constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;

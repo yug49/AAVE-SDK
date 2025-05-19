@@ -50,42 +50,42 @@ abstract contract SwapHelper is Constants {
         );
     }
 
-    /// @notice Swaps tokens on Balancer V2
-    /// @param tokenIn The input token address
-    /// @param tokenOut The output token address
-    /// @param poolId The pool ID to use for the swap
-    /// @param amountIn The amount of the input token to swap
-    /// @param amountOutMin The minimum amount of the output token to receive
-    /// @param receiver The address to receive the output tokens
-    /// @return amountOut The amount of the output token received
-    /// @dev This function performs a swap on Balancer V2 using the `swap` method from the Vault contract.
-    function swapBalancerV2(
-        address tokenIn,
-        address tokenOut,
-        bytes32 poolId,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address receiver
-    ) internal returns (uint256 amountOut) {
-        return vault.swap({
-            singleSwap: IVault.SingleSwap({
-                poolId: poolId,
-                kind: IVault.SwapKind.GIVEN_IN,
-                assetIn: tokenIn,
-                assetOut: tokenOut,
-                amount: amountIn,
-                userData: ""
-            }),
-            funds: IVault.FundManagement({
-                sender: address(this),
-                fromInternalBalance: false,
-                recipient: receiver,
-                toInternalBalance: false
-            }),
-            limit: amountOutMin,
-            deadline: block.timestamp
-        });
-    }
+    // /// @notice Swaps tokens on Balancer V2
+    // /// @param tokenIn The input token address
+    // /// @param tokenOut The output token address
+    // /// @param poolId The pool ID to use for the swap
+    // /// @param amountIn The amount of the input token to swap
+    // /// @param amountOutMin The minimum amount of the output token to receive
+    // /// @param receiver The address to receive the output tokens
+    // /// @return amountOut The amount of the output token received
+    // /// @dev This function performs a swap on Balancer V2 using the `swap` method from the Vault contract.
+    // function swapBalancerV2(
+    //     address tokenIn,
+    //     address tokenOut,
+    //     bytes32 poolId,
+    //     uint256 amountIn,
+    //     uint256 amountOutMin,
+    //     address receiver
+    // ) internal returns (uint256 amountOut) {
+    //     return vault.swap({
+    //         singleSwap: IVault.SingleSwap({
+    //             poolId: poolId,
+    //             kind: IVault.SwapKind.GIVEN_IN,
+    //             assetIn: tokenIn,
+    //             assetOut: tokenOut,
+    //             amount: amountIn,
+    //             userData: ""
+    //         }),
+    //         funds: IVault.FundManagement({
+    //             sender: address(this),
+    //             fromInternalBalance: false,
+    //             recipient: receiver,
+    //             toInternalBalance: false
+    //         }),
+    //         limit: amountOutMin,
+    //         deadline: block.timestamp
+    //     });
+    // }
 
     /// @notice Executes a token swap, either starting with Uniswap V3 or Balancer V2
     //          depending on the direction of the swap
@@ -96,62 +96,36 @@ abstract contract SwapHelper is Constants {
     /// @param data Additional data to control the swap behavior (direction, pool IDs, etc.)
     /// @return amountOut The amount of the output token received
     /// @dev This function determines the direction of the swap based on the provided `data`,
-    //       and swaps using either Uniswap V3 or Balancer V2.
+    //       and swaps using either Uniswap V3.
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, bytes memory data)
         internal
         returns (uint256 amountOut)
     {
-        // Decode the direction (open/close), Uniswap pool fee, and Balancer pool ID from the provided data
-        (bool open, uint24 uniV3PoolFee, bytes32 balPoolId) = abi.decode(data, (bool, uint24, bytes32));
+        // Decode the direction (open/close) and Uniswap pool fee from the provided data
+        (bool open, uint24 uniV3PoolFee) = abi.decode(data, (bool, uint24));
 
         // Perform token swap from tokenIn to tokenOut
         if (open) {
-            // TokenIn -> Uniswap -> WETH -> Balancer -> TokenOut
             IERC20(tokenIn).approve(address(router), amountIn);
 
-            uint256 wethAmountOut = swapUniV3({
+            return swapUniV3({
                 tokenIn: tokenIn,
-                tokenOut: WETH,
+                tokenOut: tokenOut,
                 fee: uniV3PoolFee,
                 amountIn: amountIn,
-                amountOutMin: 1,
-                receiver: address(this)
-            });
-
-            if(tokenOut == WETH) {
-                return wethAmountOut;
-            }   
-            
-            weth.approve(address(vault), wethAmountOut);
-
-            return swapBalancerV2({
-                tokenIn: WETH,
-                tokenOut: tokenOut,
-                poolId: balPoolId,
-                amountIn: wethAmountOut,
                 amountOutMin: amountOutMin,
                 receiver: address(this)
             });
-        } else {
-            // TokenIn -> Balancer -> WETH -> Uniswap -> TokenOut
-            IERC20(tokenIn).approve(address(vault), amountIn);
 
-            uint256 wethAmountOut = swapBalancerV2({
-                tokenIn: tokenIn,
-                tokenOut: WETH,
-                poolId: balPoolId,
-                amountIn: amountIn,
-                amountOutMin: 1,
-                receiver: address(this)
-            });
             
-            weth.approve(address(router), wethAmountOut);
+        } else {
+            weth.approve(address(router), amountIn);
 
             return swapUniV3({
-                tokenIn: address(weth),
+                tokenIn: tokenIn,
                 tokenOut: tokenOut,
                 fee: uniV3PoolFee,
-                amountIn: wethAmountOut,
+                amountIn: amountIn,
                 amountOutMin: amountOutMin,
                 receiver: address(this)
             });

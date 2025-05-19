@@ -138,6 +138,8 @@ contract FlashLev is SwapHelper{
             )
         });
 
+        IERC20(params.coin).transfer(msg.sender, IERC20(params.coin).balanceOf(address(this)));
+
         if (getHealthFactor.getHealthFactor(msg.sender) < params.minHealthFactor) {
             revert FlashLev__HealthFactorTooLow();
         }
@@ -232,15 +234,16 @@ contract FlashLev is SwapHelper{
             });
             uint256 colAmount = data.colAmount + colAmountOut;
             collateral.approve(aavePool, colAmount);
-            IPool(aavePool).supply({asset:data.collateral, amount: colAmount, onBehalfOf: msg.sender, referralCode: 0});
-            IPool(aavePool).borrow({asset:data.coin, amount: repayAmount, interestRateMode: 2, referralCode: 0, onBehalfOf: msg.sender});
+            IPool(aavePool).supply({asset:data.collateral, amount: colAmount, onBehalfOf: address(this), referralCode: 0});
+            IPool(aavePool).borrow({asset:data.coin, amount: repayAmount, interestRateMode: 2, referralCode: 0, onBehalfOf: address(this)});
+            //IERC20(data.coin).transfer(msg.sender, repayAmount);
             // supplyAssets.supply({token: data.collateral, amount: colAmount});
             // borrowAssets.borrow({token: data.coin, amount: repayAmount});
         } else {
             coin.approve(aavePool, amount);
             repayAssets.repay({token: data.coin, amount: amount});
 
-            uint256 colWithdrawn = withdrawAssets.withdraw({token: data.collateral, amount: type(uint256).max});
+            uint256 colWithdrawn = IPool(aavePool).withdraw({asset: data.collateral, amount: type(uint256).max, to: address(this)});
 
             collateral.transfer(data.caller, data.colAmount);
             uint256 colAmountIn = colWithdrawn - data.colAmount;
