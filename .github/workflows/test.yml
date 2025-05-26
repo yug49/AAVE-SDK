@@ -39,5 +39,5 @@ jobs:
 
       - name: Run Forge test
         run: |
-          forge test --fork-url https://eth-mainnet.g.alchemy.com/v2/0f4zcKomWpF4aqVzbegTqycZ9CQ2nLOo
+          export PRIVATE_KEY=0xa3f1cfa9b9a74084e91c2b827a6b4e0f05fd4b9cd01a7f8cc10e7c1234567890 && forge test --fork-url https://eth-mainnet.g.alchemy.com/v2/0f4zcKomWpF4aqVzbegTqycZ9CQ2nLOo
         id: test
