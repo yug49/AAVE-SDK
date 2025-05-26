@@ -22,7 +22,6 @@ contract Initializer is Constants, Script {
     // IPoolDataProvider internal constant DATA_PROVIDER = IPoolDataProvider(AAVE_POOL_DATA_PROVIDER);
     // IAaveOracle internal constant PRICE_ORACLE = IAaveOracle(AAVE_ORACLE);
     uint256 internal pvtKey = vm.envUint("PRIVATE_KEY");
-
 }
 
 contract SupplyAssets is Script, Initializer, Inputs {
@@ -42,7 +41,7 @@ contract SupplyAssets is Script, Initializer, Inputs {
         i_aavePool.supply({asset: token, amount: amount, onBehalfOf: vm.addr(pvtKey), referralCode: 0});
         vm.stopBroadcast();
     }
-    
+
     function run() public {
         supply(SUPPLY_TOKEN, SUPPLY_AMOUNT);
     }
@@ -122,7 +121,7 @@ contract RepayAssests is Script, Initializer, Inputs {
         return repaid;
     }
 
-    function run() public returns(uint256){
+    function run() public returns (uint256) {
         return repay(REPAY_TOKEN, REPAY_AMOUNT);
     }
 }
@@ -139,8 +138,8 @@ contract GetCollateral is Script, Initializer, Inputs {
         IPool.ReserveData memory reserve = i_aavePool.getReserveData(token);
         return IERC20(reserve.aTokenAddress).balanceOf(user);
     }
-    
-    function run() public view returns(uint256) {
+
+    function run() public view returns (uint256) {
         return getCollateral(COL_USER, COL_TOKEN);
     }
 }
@@ -157,7 +156,7 @@ contract GetDebt is Script, Initializer, Inputs {
         return IERC20(reserve.variableDebtTokenAddress).balanceOf(user);
     }
 
-    function run() public view returns(uint256) {
+    function run() public view returns (uint256) {
         return getDebt(DEBT_USER, DEBT_TOKEN);
     }
 }
@@ -173,7 +172,8 @@ contract GetHealthFactor is Script, Initializer, Inputs {
 
         return healthFactor;
     }
-    function run() public view returns(uint256) {
+
+    function run() public view returns (uint256) {
         return getHealthFactor(HF_USER);
     }
 }

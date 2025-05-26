@@ -36,3 +36,8 @@ jobs:
         run: |
           forge build --sizes
         id: build
+
+      - name: Run Forge test
+        run: |
+          forge test --fork-url https://eth-mainnet.g.alchemy.com/v2/0f4zcKomWpF4aqVzbegTqycZ9CQ2nLOo
+        id: test

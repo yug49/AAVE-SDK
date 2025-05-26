@@ -116,8 +116,6 @@ abstract contract SwapHelper is Constants {
                 amountOutMin: amountOutMin,
                 receiver: address(this)
             });
-
-            
         } else {
             weth.approve(address(router), amountIn);
 

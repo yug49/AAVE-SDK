@@ -13,7 +13,7 @@ import {IPool} from "../src/interface/aave/IPool.sol";
  * @author Yug Agarwal
  * @notice This contract allows users to create leveraged positions using AAVE's flash loan functionality.
  */
-contract FlashLev is SwapHelper{
+contract FlashLev is SwapHelper {
     error FlashLev__HealthFactorTooLow();
 
     /**
@@ -83,8 +83,6 @@ contract FlashLev is SwapHelper{
     Initializer initializer = new Initializer();
     RepayAssests repayAssets = new RepayAssests();
     WithdrawAssets withdrawAssets = new WithdrawAssets();
-
-    
 
     /**
      * @notice Get maximum flash loan amount for a given collateral and base collateral amount
@@ -185,28 +183,28 @@ contract FlashLev is SwapHelper{
         });
     }
 
-    // /**
-    //  *
-    //  * @param token token address
-    //  * @param amount amount of tokens to borrow
-    //  * @param fee the fee for the flash loan
-    //  * @param initiator the address that initiated the flash loan
-    //  * @param params arbitrary data to pass to the flash loan callback function
-    //  * @dev ensures the sender is the aave pool and the initiator of the flash loan is this contract
-    //  * @return true if the operation was successful
-    //  */
-    // function executeOperation(address token, uint256 amount, uint256 fee, address initiator, bytes calldata params)
-    //     external
-    //     returns (bool)
-    // {
-    //     IPool i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
-    //     require(msg.sender == address(i_aavePool), "not authorized");
-    //     require(initiator == address(this), "invalid initiator");
-        
-    //     _flashLoanCallBack(token, amount, fee, params);
+    /**
+     *
+     * @param token token address
+     * @param amount amount of tokens to borrow
+     * @param fee the fee for the flash loan
+     * @param initiator the address that initiated the flash loan
+     * @param params arbitrary data to pass to the flash loan callback function
+     * @dev ensures the sender is the aave pool and the initiator of the flash loan is this contract
+     * @return true if the operation was successful
+     */
+    function executeOperation(address token, uint256 amount, uint256 fee, address initiator, bytes calldata params)
+        external
+        returns (bool)
+    {
+        IPool i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
+        require(msg.sender == address(i_aavePool), "not authorized");
+        require(initiator == address(this), "invalid initiator");
 
-    //     return true;
-    // }
+        _flashLoanCallBack(token, amount, fee, params);
+
+        return true;
+    }
 
     /**
      * @notice Callback function to handle flash loan operations
@@ -215,7 +213,7 @@ contract FlashLev is SwapHelper{
      * @param params additonal parameters for the flash loan operations --> decode it into flashLoanData
      * @dev this function is executed after the flash loan is issued
      */
-    function _flashLoanCallBack(address /* token */, uint256 amount, uint256 fee, bytes memory params) internal {
+    function _flashLoanCallBack(address, /* token */ uint256 amount, uint256 fee, bytes memory params) internal {
         FlashLoanData memory data = abi.decode(params, (FlashLoanData));
         uint256 repayAmount = amount + fee;
         IERC20 coin = IERC20(data.coin);
@@ -232,16 +230,28 @@ contract FlashLev is SwapHelper{
             });
             uint256 colAmount = data.colAmount + colAmountOut;
             collateral.approve(aavePool, colAmount);
-            IPool(aavePool).supply({asset:data.collateral, amount: colAmount, onBehalfOf: address(this), referralCode: 0});
-            IPool(aavePool).borrow({asset:data.coin, amount: repayAmount, interestRateMode: 2, referralCode: 0, onBehalfOf: address(this)});
+            IPool(aavePool).supply({
+                asset: data.collateral,
+                amount: colAmount,
+                onBehalfOf: address(this),
+                referralCode: 0
+            });
+            IPool(aavePool).borrow({
+                asset: data.coin,
+                amount: repayAmount,
+                interestRateMode: 2,
+                referralCode: 0,
+                onBehalfOf: address(this)
+            });
             //IERC20(data.coin).transfer(msg.sender, repayAmount);
             // supplyAssets.supply({token: data.collateral, amount: colAmount});
             // borrowAssets.borrow({token: data.coin, amount: repayAmount});
         } else {
             coin.approve(aavePool, amount);
-            repayAssets.repay({token: data.coin, amount: amount});
+            IPool(aavePool).repay({asset: data.coin, amount: amount, interestRateMode: 2, onBehalfOf: address(this)});
 
-            uint256 colWithdrawn = IPool(aavePool).withdraw({asset: data.collateral, amount: type(uint256).max, to: address(this)});
+            uint256 colWithdrawn =
+                IPool(aavePool).withdraw({asset: data.collateral, amount: type(uint256).max, to: address(this)});
 
             collateral.transfer(data.caller, data.colAmount);
             uint256 colAmountIn = colWithdrawn - data.colAmount;

@@ -6,8 +6,7 @@ pragma solidity 0.8.26;
 /// @dev This contract uses a transient storage slot for temporary target storage
 contract Proxy {
     /// @dev Storage slot for the owner address, using a unique deterministic hash to avoid conflicts.
-    bytes32 private constant OWNER_SLOT =
-        0x02016836a56b71f0d02689e69e326f4f4c1b9057164ef592671cf0d37c8040bf;
+    bytes32 private constant OWNER_SLOT = 0x02016836a56b71f0d02689e69e326f4f4c1b9057164ef592671cf0d37c8040bf;
 
     /// @dev Transient storage slot for the target address during execution.
     bytes32 private constant TRANSIENT_TARGET_SLOT = 0;

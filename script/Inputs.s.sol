@@ -6,7 +6,7 @@ contract Inputs {
     // Supply Assets
     address internal constant SUPPLY_TOKEN = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // WETH
     uint256 internal constant SUPPLY_AMOUNT = 1e18; // 1 Token
-    
+
     // Withdraw Assets
     address internal constant WITHDRAW_TOKEN = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // WETH
     uint256 internal constant WITHDRAW_AMOUNT = 1e17; // 0.5 tokens
@@ -29,5 +29,4 @@ contract Inputs {
 
     // Get Health Factor
     address internal constant HF_USER = 0xFF7290D664603D7564718800A987A161BedC4A6D; // address of the user you want to know the health factor of
-
 }
