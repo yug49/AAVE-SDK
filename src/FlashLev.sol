@@ -138,8 +138,6 @@ contract FlashLev is SwapHelper{
             )
         });
 
-        IERC20(params.coin).transfer(msg.sender, IERC20(params.coin).balanceOf(address(this)));
-
         if (getHealthFactor.getHealthFactor(msg.sender) < params.minHealthFactor) {
             revert FlashLev__HealthFactorTooLow();
         }
@@ -187,28 +185,28 @@ contract FlashLev is SwapHelper{
         });
     }
 
-    /**
-     *
-     * @param token token address
-     * @param amount amount of tokens to borrow
-     * @param fee the fee for the flash loan
-     * @param initiator the address that initiated the flash loan
-     * @param params arbitrary data to pass to the flash loan callback function
-     * @dev ensures the sender is the aave pool and the initiator of the flash loan is this contract
-     * @return true if the operation was successful
-     */
-    function executeOperation(address token, uint256 amount, uint256 fee, address initiator, bytes calldata params)
-        external
-        returns (bool)
-    {
-        IPool i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
-        require(msg.sender == address(i_aavePool), "not authorized");
-        require(initiator == address(this), "invalid initiator");
+    // /**
+    //  *
+    //  * @param token token address
+    //  * @param amount amount of tokens to borrow
+    //  * @param fee the fee for the flash loan
+    //  * @param initiator the address that initiated the flash loan
+    //  * @param params arbitrary data to pass to the flash loan callback function
+    //  * @dev ensures the sender is the aave pool and the initiator of the flash loan is this contract
+    //  * @return true if the operation was successful
+    //  */
+    // function executeOperation(address token, uint256 amount, uint256 fee, address initiator, bytes calldata params)
+    //     external
+    //     returns (bool)
+    // {
+    //     IPool i_aavePool = IPool(IPoolAddressesProvider(AAVE_POOL_ADDRESSES_PROVIDER).getPool());
+    //     require(msg.sender == address(i_aavePool), "not authorized");
+    //     require(initiator == address(this), "invalid initiator");
         
-        _flashLoanCallBack(token, amount, fee, params);
+    //     _flashLoanCallBack(token, amount, fee, params);
 
-        return true;
-    }
+    //     return true;
+    // }
 
     /**
      * @notice Callback function to handle flash loan operations
