@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import {Constants} from "../src/Constants.sol";
 import {Test, console} from "../lib/forge-std/src/Test.sol";
-import {Proxy} from "../src/Proxy.sol";
 import {IERC20} from "../src/interface/token/IERC20.sol";
 import {IPool} from "../src/interface/aave/IPool.sol";
 import {IPoolAddressesProvider} from "../src/interface/aave/IPoolAddressesProvider.sol";
@@ -20,7 +19,6 @@ import {
 } from "../script/Interactions.s.sol";
 
 contract InteractionsTest is Test, Constants {
-    Proxy proxy;
     IERC20 constant dai = IERC20(DAI);
     IERC20 constant reth = IERC20(RETH);
     IERC20 constant weth = IERC20(WETH);
@@ -60,8 +58,6 @@ contract InteractionsTest is Test, Constants {
         deal(WETH, USER, 1 * 1e18); // 1 WETH
 
         // vm.startPrank(USER);
-        // dai.approve(address(proxy), type(uint256).max);
-        // reth.approve(address(proxy), type(uint256).max);
         // // Approve AAVE pool to spend tokens
         // dai.approve(address(aavePool), type(uint256).max);
         // reth.approve(address(aavePool), type(uint256).max);

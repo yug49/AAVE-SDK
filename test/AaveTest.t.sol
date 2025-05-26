@@ -9,12 +9,10 @@ import {Constants} from "../src/Constants.sol";
 import {IERC20} from "../src/interface/token/IERC20.sol";
 import {IPoolAddressesProvider} from "../src/interface/aave/IPoolAddressesProvider.sol";
 import {IPool} from "../src/interface/aave/IPool.sol";
-import {Proxy} from "../src/Proxy.sol";
 import {GetDebt} from "../script/Interactions.s.sol";
 
 contract AaveTest is Test, Constants {
     FlashLev flashLev;
-    Proxy proxy;
     GetDebt getDebtInstance;
     IERC20 constant iUSDC = IERC20(USDC);
     IERC20 constant iWETH = IERC20(WETH);
@@ -26,7 +24,6 @@ contract AaveTest is Test, Constants {
     function setUp() public {
         console.log("Setting up test...");
         flashLev = new FlashLev();
-        proxy = new Proxy(USER);
         getDebtInstance = new GetDebt();
         console.log("0");
         address pool = poolAddressProvider.getPool();
