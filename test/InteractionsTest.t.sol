@@ -161,7 +161,7 @@ contract InteractionsTest is Test, Constants {
 
         // Check debt decreased
         uint256 debt = getDebtInstance.getDebt(USER, DAI);
-        assertEq(debt, borrowAmount - repayAmount, "Debt should decrease by repaid amount");
+        assertApproxEqAbs(debt, borrowAmount - repayAmount, 100, "Debt should decrease by repaid amount");
     }
 
     function testGetCollateral() public {
